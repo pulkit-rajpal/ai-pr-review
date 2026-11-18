@@ -1,0 +1,38 @@
+# Copy this file to  .github/workflows/pr-review.yml  in ANY repo you want reviewed.
+# Then add a repository secret named LLM_API_KEY (Settings > Secrets and variables > Actions).
+# Replace YOUR_USERNAME with the GitHub account that hosts pr-reviewer.
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: pr-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    if: >
+      (github.event_name == 'pull_request' && !github.event.pull_request.draft) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+       github.event.comment.user.type != 'Bot' &&
+       contains(github.event.comment.body, '@pr-reviewer') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    env:
+      HAS_KEY: ${{ secrets.LLM_API_KEY != '' }}
+    steps:
+      - uses: YOUR_USERNAME/pr-reviewer@main
+        if: env.HAS_KEY == 'true'
+        with:
+          api-key: ${{ secrets.LLM_API_KEY }}
+          comment: ${{ github.event.comment.body }}
+          # fail-on: high          # optional: fail the check on high-risk PRs

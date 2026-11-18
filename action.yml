@@ -1,0 +1,52 @@
+name: "PR Reviewer"
+description: "AI code review for pull requests with any LLM: risk label, inline comments, walkthrough, chat commands."
+branding:
+  icon: "eye"
+  color: "purple"
+
+inputs:
+  api-key:
+    description: "LLM API key (Gemini, Groq, OpenRouter, Anthropic, OpenAI). Store it as a repository secret."
+    required: true
+  github-token:
+    description: "Token used to read the PR and post comments."
+    default: ${{ github.token }}
+  pr-url:
+    description: "PR URL to review. Defaults to the PR that triggered the workflow."
+    default: ""
+  comment:
+    description: "Comment body for @pr-reviewer chat commands (issue_comment events)."
+    default: ""
+  provider:
+    description: "Force a provider (gemini, groq, openrouter, openai, anthropic, custom)."
+    default: ""
+  model:
+    description: "Override the default model."
+    default: ""
+  fail-on:
+    description: "Fail the check if risk is at least this level (medium or high)."
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install dependencies
+      shell: bash
+      run: pip install -q -r "${{ github.action_path }}/requirements.txt"
+    - name: Run PR Reviewer
+      shell: bash
+      env:
+        LLM_API_KEY: ${{ inputs.api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        PR_URL: ${{ inputs.pr-url || format('https://github.com/{0}/pull/{1}', github.repository, github.event.pull_request.number || github.event.issue.number) }}
+        PRR_COMMENT: ${{ inputs.comment }}
+        PRR_PROVIDER: ${{ inputs.provider }}
+        PRR_MODEL: ${{ inputs.model }}
+        PRR_FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        args=(--post)
+        if [ -n "$PRR_COMMENT" ]; then args+=(--from-comment); fi
+        python "${{ github.action_path }}/pr_reviewer.py" "$PR_URL" "${args[@]}"
