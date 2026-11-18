@@ -1,6 +1,6 @@
 # PR Reviewer
 
-An open-source, CodeRabbit-style pull-request reviewer that runs with **any LLM** (including free ones).
+An open-source pull-request reviewer that runs with **any LLM** (including free ones).
 Use it from the command line, or install it as a GitHub Action so every PR is reviewed automatically.
 
 ## Features
